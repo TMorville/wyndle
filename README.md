@@ -119,11 +119,11 @@ uv run wyndle-pipeline --database-stats
 Once configured, you can interact with Wyndle directly in Raycast:
 
 ```
-@Wyndle please look at my squad channel, make a list of action points for me and add them to @todoist
+@Wyndle please look at my squad channel, make a list of action points for me and add them as todo's with @todoist
 
-@Wyndle what needs my attention?
+@Wyndle anything to follow up on today?
 
-@Wyndle summarize my latest interaction with Emil Bunk
+@Wyndle summarize my latest interaction with Emil B
 
 @Wyndle show me what's happening in the data team channel this week
 ```
