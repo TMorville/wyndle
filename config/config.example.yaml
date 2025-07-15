@@ -1,0 +1,40 @@
+slack:
+  channels:
+    - data
+    - company
+    - general
+  sync_days: 7
+  parallel_requests: 6
+  save_threads: true
+  
+  # Bot filtering - users/bots to exclude from MCP tool results
+  # Add any bot names you want to filter out (case-insensitive matching)
+  ignored_bots:
+    - slackbot
+    - Slackbot
+    - grafana
+    - Grafana
+    - jira
+    - Jira
+    - JIRA
+    - github
+    - GitHub
+    - Github
+    - calendly
+    - Calendly
+    - zoom
+    - Zoom
+    - google
+    - Google
+    - notion
+    - Notion
+    - figma
+    - Figma
+    - linear
+    - Linear
+
+# All DMs are automatically monitored - no configuration needed
+
+# Continuous loader schedule settings
+schedule:
+  default_interval_minutes: 30  # Default polling interval for all channels
