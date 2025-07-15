@@ -8,7 +8,6 @@ dependencies = [
   "pyyaml",
   "slack_sdk",
   "openai",
-  "anthropic",
   "python-dotenv",
   "requests",
   "fastmcp",
@@ -106,7 +105,6 @@ module = [
     "slack_sdk.*",
     "fastmcp.*", 
     "duckdb.*",
-    "anthropic.*",
 ]
 ignore_missing_imports = true
 

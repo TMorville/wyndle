@@ -1,11 +1,11 @@
 import json
 import logging
+import os
 from contextlib import suppress
 from datetime import datetime
 from typing import Any
 
-from anthropic import Anthropic
-from anthropic.types import TextBlock
+from openai import OpenAI
 
 from data.duckdb_database import get_optimized_db
 
@@ -18,12 +18,13 @@ logger = logging.getLogger(__name__)
 # Constants
 STYLEGUIDE_PATH = "styleguide.md"
 META_PATH = "meta.json"
-MODEL_NAME = "claude-3-opus-20240229"
+MODEL_NAME = "gpt-4"
 MAX_TOKENS = 4000
-import os
 USER_NAME = os.getenv("WYNDLE_USER_NAME", "User")  # Configurable user name
 
-client = Anthropic()
+def get_client() -> OpenAI:
+    """Get OpenAI client, initialized on first use."""
+    return OpenAI()
 
 
 def collect_user_messages(user_name: str) -> list[str]:
@@ -98,14 +99,16 @@ def main() -> None:
             len(chunks),
             MODEL_NAME,
         )
-        response = client.messages.create(
+        response = get_client().chat.completions.create(
             model=MODEL_NAME,
             max_tokens=MAX_TOKENS,
-            system=prompt,
-            messages=[{"role": "user", "content": chunk}],
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": chunk}
+            ],
         )
-        if response.content and isinstance(response.content[0], TextBlock):
-            styleguides.append(response.content[0].text.strip())
+        if response.choices and response.choices[0].message.content:
+            styleguides.append(response.choices[0].message.content.strip())
 
     logger.info("\n=== STYLEGUIDE FOR TOBIAS MORVILLE ===\n")
     with open(STYLEGUIDE_PATH, "w") as f:

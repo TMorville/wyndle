@@ -23,7 +23,6 @@ warnings.filterwarnings("ignore")
 
 # Set environment variables to disable provider warnings
 os.environ["FASTMCP_DISABLE_PROVIDER_WARNINGS"] = "1"
-os.environ["ANTHROPIC_DISABLE_WARNINGS"] = "1"
 os.environ["GOOGLE_DISABLE_WARNINGS"] = "1"
 
 
@@ -72,7 +71,7 @@ def load_user_identity() -> tuple[str | None, str]:
     try:
         meta = load_meta()
         user_id: str | None = meta.get("owner_id") or meta.get("user_id")
-        user_name: str = (
+        user_name = str(
             meta.get("user_name") or meta.get("owner_name") or os.getenv("WYNDLE_USER_NAME", "User")
         )
         return user_id, user_name

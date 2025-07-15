@@ -11,8 +11,7 @@ import json
 import logging
 from typing import Any
 
-from anthropic import Anthropic
-from anthropic.types import TextBlock
+from openai import OpenAI
 
 from data.duckdb_database import get_optimized_db
 
@@ -28,8 +27,8 @@ class OrgStructureGenerator:
     Analyzes Slack conversations to infer and generate an organizational structure.
     """
 
-    def __init__(self, model_name: str = "claude-3-opus-20240229"):
-        self.client = Anthropic()
+    def __init__(self, model_name: str = "gpt-4"):
+        self.client: OpenAI | None = None  # Lazy loaded
         self.model_name = model_name
         self.output_path = "org_structure.json"
         self.db = get_optimized_db(lazy_resolver=True)
@@ -172,14 +171,18 @@ template provided in the system prompt."""
 
         logger.info(f"Sending request to {self.model_name}...")
         try:
-            response = self.client.messages.create(
+            if self.client is None:
+                self.client = OpenAI()
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 max_tokens=4096,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
             )
-            if response.content and isinstance(response.content[0], TextBlock):
-                org_structure_text = response.content[0].text
+            if response.choices and response.choices[0].message.content:
+                org_structure_text = response.choices[0].message.content
                 org_structure = json.loads(org_structure_text)
 
                 with open(self.output_path, "w") as f:
