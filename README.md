@@ -94,6 +94,42 @@ uv run wyndle-server
 uv run wyndle-pipeline --database-stats
 ```
 
+## 🎯 Raycast Integration
+
+### Setup Instructions
+
+1. **Install MCP Extension in Raycast**
+   - Open Raycast
+   - Go to Extensions → Store
+   - Search for "MCP" and install the MCP extension
+
+2. **Install MCP Server** 
+   - Complete the installation steps above first
+   - Make sure you have your `.env` file configured with API keys
+
+3. **Add Wyndle to Raycast**
+   - Open Raycast MCP settings
+   - Click "Add MCP Server"
+   - **Command**: `<your-path-to-repo>/scripts/run-wyndle.sh`
+   - **Name**: `Wyndle`
+   - Save the configuration
+
+### Usage
+
+Once configured, you can interact with Wyndle directly in Raycast:
+
+```
+@Wyndle please look at my squad channel, make a list of action points for me and add them to @todoist
+
+@Wyndle what needs my attention?
+
+@Wyndle summarize my latest interaction with Emil Bunk
+
+@Wyndle show me what's happening in the data team channel this week
+```
+
+Wyndle will provide intelligent, context-aware responses and can integrate with other Raycast extensions like Todoist for task management.
+
 ## 💬 AI Integration Examples
 
 ### With Raycast
