@@ -99,7 +99,7 @@ uv run wyndle-pipeline --database-stats
 
 ### Demo
 
-https://github.com/user-attachments/assets/wyndle_demo_2x.mov
+![Wyndle Raycast Integration Demo](wyndle_demo.gif)
 
 *Watch how easy it is to add Wyndle to Raycast and start using it as your AI-powered Slack assistant.*
 
