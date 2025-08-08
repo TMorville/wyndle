@@ -46,11 +46,12 @@ uv sync
 cp config/config.example.yaml config/config.yaml
 cp .env.example .env
 
-# Set up the database (IMPORTANT: Required before first run)
-cp data/conversations.example.duckdb data/conversations.duckdb
+# Edit your configuration files
+# - Add your Slack API tokens to .env
+# - Configure channels to monitor in config/config.yaml
 ```
 
-> **⚠️ Important**: You must copy the example database before running your first `--dataloader` command. This creates the proper database schema for storing your Slack data.
+> **⚠️ Important**: Make sure to set your `SLACK_USER_KEY` and `OPENAI_API_KEY` in the `.env` file before running the data loader. The database schema will be created automatically on first run.
 
 ### Configuration
 
@@ -95,6 +96,12 @@ uv run wyndle-pipeline --database-stats
 ```
 
 ## 🎯 Raycast Integration
+
+### Demo
+
+https://github.com/user-attachments/assets/wyndle_demo_2x.mov
+
+*Watch how easy it is to add Wyndle to Raycast and start using it as your AI-powered Slack assistant.*
 
 ### Setup Instructions
 
