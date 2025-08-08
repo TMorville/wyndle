@@ -71,7 +71,7 @@ def fetch_and_process_conversation(
     else:
         # Calculate oldest timestamp for initial fetch
         oldest_timestamp = datetime.now().timestamp() - (days_to_fetch * 24 * 3600)
-        logger.info(f"New conversation, fetching last {days_to_fetch} days")
+        logger.debug(f"New conversation, fetching last {days_to_fetch} days")
 
     try:
         # Fetch conversation history using the robust fetch_history function
@@ -79,9 +79,15 @@ def fetch_and_process_conversation(
             channel_id=actual_conversation_id,
             oldest=oldest_timestamp,
         )
-        logger.info(
-            f"Fetched {len(messages)} messages from {conversation_type} {conversation_id}"
-        )
+        # Only log when we actually fetched messages
+        if len(messages) > 0:
+            logger.info(
+                f"Fetched {len(messages)} messages from {conversation_type} {conversation_id}"
+            )
+        else:
+            logger.debug(
+                f"No messages fetched from {conversation_type} {conversation_id}"
+            )
 
         # Process and insert messages directly into optimized database
         new_messages = 0
@@ -106,9 +112,15 @@ def fetch_and_process_conversation(
                 )
                 continue
 
-        logger.info(
-            f"Added {new_messages} new messages from {conversation_type} {conversation_id}"
-        )
+        # Only log when we actually added new messages
+        if new_messages > 0:
+            logger.info(
+                f"Added {new_messages} new messages from {conversation_type} {conversation_id}"
+            )
+        else:
+            logger.debug(
+                f"No new messages to add from {conversation_type} {conversation_id}"
+            )
         return new_messages
 
     except Exception as e:

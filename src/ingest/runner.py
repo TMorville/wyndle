@@ -5,11 +5,16 @@ Runs continuously, fetching messages from Slack API while respecting rate limits
 Uses a token bucket to spread API calls over time.
 """
 
+import argparse
 import asyncio
 import logging
+import os
+import signal
+import sys
 import time
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
+from pathlib import Path
 from typing import Any
 
 from config import load_config  # type: ignore[attr-defined]
@@ -96,10 +101,16 @@ async def fetch_conversation_safe(
             days_to_fetch=1,  # Incremental fetch
         )
 
-        logger.info(
-            f"Fetched {new_messages} new messages from {conversation_type} "
-            f"{conversation_id}"
-        )
+        # Only log when we actually found new messages
+        if new_messages > 0:
+            logger.info(
+                f"Fetched {new_messages} new messages from {conversation_type} "
+                f"{conversation_id}"
+            )
+        else:
+            logger.debug(
+                f"No new messages from {conversation_type} {conversation_id}"
+            )
         return new_messages
 
     except Exception as e:
@@ -414,18 +425,244 @@ async def main() -> None:
         logger.error(f"Unexpected error in main loop: {e}")
 
 
-def cli_main() -> None:
-    """CLI entry point for the continuous loader."""
-    # Set up logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+
+
+def get_pid_file() -> Path:
+    """Get the PID file path for the daemon."""
+    return Path.home() / ".wyndle" / "loader.pid"
+
+
+def is_daemon_running() -> bool:
+    """Check if the daemon is currently running."""
+    pid_file = get_pid_file()
+    if not pid_file.exists():
+        return False
 
     try:
-        asyncio.run(main())
+        with open(pid_file) as f:
+            pid = int(f.read().strip())
+
+        # Check if process is still running
+        os.kill(pid, 0)  # This will raise OSError if process doesn't exist
+        return True
+    except (OSError, ValueError):
+        # Process not found or invalid PID file - clean up
+        with suppress(OSError):
+            pid_file.unlink()
+        return False
+
+
+def start_daemon(num_workers: int, verbose: bool = False) -> None:
+    """Start the loader as a background daemon."""
+    if is_daemon_running():
+        print("Daemon is already running. Use 'wyndle-loader status' to check status.")
+        sys.exit(1)
+
+    # Create PID directory
+    pid_file = get_pid_file()
+    pid_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Fork to background
+    if os.fork() != 0:
+        # Parent process - exit
+        sys.exit(0)
+
+    # Child process - become daemon
+    os.setsid()
+
+    # Second fork to prevent zombie processes
+    if os.fork() != 0:
+        sys.exit(0)
+
+    # Write PID file
+    with open(pid_file, 'w') as f:
+        f.write(str(os.getpid()))
+
+    # Redirect standard streams to /dev/null
+    with open('/dev/null', 'w') as devnull:
+        os.dup2(devnull.fileno(), sys.stdout.fileno())
+        os.dup2(devnull.fileno(), sys.stderr.fileno())
+
+    with open('/dev/null') as devnull:
+        os.dup2(devnull.fileno(), sys.stdin.fileno())
+
+    # Set up logging to file with appropriate level
+    log_file = Path.home() / ".wyndle" / "loader.log"
+    log_level = logging.DEBUG if verbose else logging.WARNING
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_file),
+        ]
+    )
+
+    # Set our logger to INFO level to show meaningful activity
+    logger.setLevel(logging.INFO)
+
+    # Store num_workers globally for main() to use
+    global NUM_WORKERS
+    NUM_WORKERS = num_workers
+
+    # Handle signals for graceful shutdown
+    def signal_handler(signum: int, frame: Any) -> None:
+        logger.info(f"Received signal {signum}, shutting down...")
+        with suppress(OSError):
+            pid_file.unlink()
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        asyncio.run(main_daemon())
+    except Exception as e:
+        logger.error(f"Daemon error: {e}")
+    finally:
+        with suppress(OSError):
+            pid_file.unlink()
+
+
+def stop_daemon() -> None:
+    """Stop the running daemon."""
+    pid_file = get_pid_file()
+    if not pid_file.exists():
+        print("Daemon is not running.")
+        sys.exit(1)
+
+    try:
+        with open(pid_file) as f:
+            pid = int(f.read().strip())
+
+        print(f"Stopping daemon (PID {pid})...")
+        os.kill(pid, signal.SIGTERM)
+
+        # Wait for process to stop
+        import time
+        for _ in range(10):  # Wait up to 10 seconds
+            try:
+                os.kill(pid, 0)
+                time.sleep(1)
+            except OSError:
+                break
+        else:
+            # Force kill if still running
+            with suppress(OSError):
+                os.kill(pid, signal.SIGKILL)
+
+        with suppress(OSError):
+            pid_file.unlink()
+
+        print("Daemon stopped.")
+
+    except (OSError, ValueError) as e:
+        print(f"Error stopping daemon: {e}")
+        with suppress(OSError):
+            pid_file.unlink()
+        sys.exit(1)
+
+
+def show_status() -> None:
+    """Show daemon status."""
+    if is_daemon_running():
+        pid_file = get_pid_file()
+        with open(pid_file) as f:
+            pid = int(f.read().strip())
+        print(f"Daemon is running (PID {pid})")
+
+        # Show log tail if available
+        log_file = Path.home() / ".wyndle" / "loader.log"
+        if log_file.exists():
+            print("\nRecent log entries:")
+            with open(log_file) as f:
+                lines = f.readlines()
+                for line in lines[-5:]:  # Show last 5 lines
+                    print(f"  {line.rstrip()}")
+    else:
+        print("Daemon is not running.")
+
+
+def cli_main() -> None:
+    """CLI entry point for the continuous loader."""
+    parser = argparse.ArgumentParser(description="Wyndle background loader daemon")
+    parser.add_argument(
+        "action",
+        choices=["start", "stop", "restart", "status"],
+        help="Daemon action"
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=3,
+        help="Number of worker processes (default: 3)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging (shows all debug messages)"
+    )
+
+    args = parser.parse_args()
+
+    if args.action == "start":
+        verbosity = " (verbose)" if args.verbose else ""
+        print(f"Starting daemon with {args.workers} workers{verbosity}...")
+        start_daemon(args.workers, args.verbose)
+        print("Daemon started in background.")
+
+    elif args.action == "stop":
+        stop_daemon()
+
+    elif args.action == "restart":
+        if is_daemon_running():
+            stop_daemon()
+        verbosity = " (verbose)" if args.verbose else ""
+        print(f"Starting daemon with {args.workers} workers{verbosity}...")
+        start_daemon(args.workers, args.verbose)
+        print("Daemon restarted.")
+
+    elif args.action == "status":
+        show_status()
+
+
+# Global variable to store worker count from CLI
+NUM_WORKERS = 3
+
+
+async def main_daemon() -> None:
+    """Main continuous loader function."""
+    logger.info("Starting Slack PA continuous loader")
+
+    # Test Slack auth
+    if not test_slack_auth():
+        logger.error("Slack authentication failed")
+        return
+
+    # Load configuration
+    try:
+        config = load_config()
+    except Exception as e:
+        logger.error(f"Could not load config: {e}")
+        return
+
+    # Bootstrap schedule if needed (using minimal approach to avoid rate limits)
+    await bootstrap_schedule_minimal(config)
+
+    # Create token bucket for rate limiting
+    bucket = TokenBucket(BUCKET_SIZE, TOKEN_REFILL_INTERVAL)
+
+    # Start worker tasks
+    num_workers = NUM_WORKERS
+    logger.info(f"Starting {num_workers} workers")
+
+    try:
+        # Use gather instead of TaskGroup for compatibility
+        tasks = [worker(bucket, i) for i in range(num_workers)]
+        await asyncio.gather(*tasks)
     except KeyboardInterrupt:
-        logger.info("Continuous loader stopped")
+        logger.info("Received interrupt signal, shutting down...")
+    except Exception as e:
+        logger.error(f"Unexpected error in main loop: {e}")
 
 
 if __name__ == "__main__":

@@ -85,8 +85,17 @@ cp .env.example .env
 # One-time data load
 uv run wyndle-pipeline --dataloader
 
-# Start continuous background sync
-uv run wyndle-loader
+# Start continuous background sync daemon
+uv run wyndle-loader start --workers 5
+
+# Check daemon status
+uv run wyndle-loader status
+
+# Stop daemon
+uv run wyndle-loader stop
+
+# Restart daemon with different worker count
+uv run wyndle-loader restart --workers 3
 
 # Launch MCP server for AI integration
 uv run wyndle-server

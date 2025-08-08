@@ -130,11 +130,38 @@ async def _fetch_and_store(
     last_ts = repo.get_last_synced_ts(conversation_id)
     oldest = max(oldest, last_ts)
 
-    messages_raw = await client.fetch_history(
-        conversation_id,
-        oldest=oldest,
-        fetch_threads=cfg.save_threads and conversation_type == "channel",
-    )
+    try:
+        messages_raw = await client.fetch_history(
+            conversation_id,
+            oldest=oldest,
+            fetch_threads=cfg.save_threads and conversation_type == "channel",
+        )
+    except Exception as e:
+        # Handle API errors gracefully - log and continue
+        error_msg = str(e)
+        if "channel_not_found" in error_msg or "not_in_channel" in error_msg:
+            log.warning(
+                "Skipping %s '%s' (%s): channel not found or no access",
+                conversation_type,
+                conversation_name,
+                conversation_id,
+            )
+        elif "account_inactive" in error_msg:
+            log.warning(
+                "Skipping %s '%s' (%s): account inactive",
+                conversation_type,
+                conversation_name,
+                conversation_id,
+            )
+        else:
+            log.error(
+                "Failed to fetch %s '%s' (%s): %s",
+                conversation_type,
+                conversation_name,
+                conversation_id,
+                error_msg,
+            )
+        return
 
     messages: list[SlackMessage] = []
     for m in messages_raw:

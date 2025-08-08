@@ -512,7 +512,18 @@ class DuckDBConversationDB:
                 GROUP BY type
             """
             ).fetchall()
-            stats["conversations"] = {row[0]: row[1] for row in conv_results}
+            conversation_counts = {row[0]: row[1] for row in conv_results}
+            stats["conversations"] = conversation_counts
+
+            # Calculate totals for CLI display
+            total_convs = sum(conversation_counts.values())
+            stats["total_conversations"] = total_convs
+            stats["channels"] = conversation_counts.get("channel", 0)
+            stats["dms"] = conversation_counts.get("dm", 0)
+
+            # Total users count
+            user_total = conn.execute("SELECT COUNT(*) FROM users").fetchone()
+            stats["total_users"] = user_total[0] if user_total else 0
 
             # Message counts
             msg_count = conn.execute(
