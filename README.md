@@ -97,12 +97,6 @@ uv run wyndle-pipeline --database-stats
 
 ## 🎯 Raycast Integration
 
-### Demo
-
-![Wyndle Raycast Integration Demo](wyndle_demo.gif)
-
-*Watch how easy it is to add Wyndle to Raycast and start using it as your AI-powered Slack assistant.*
-
 ### Setup Instructions
 
 1. **Install MCP Extension in Raycast**
@@ -120,6 +114,8 @@ uv run wyndle-pipeline --database-stats
    - **Command**: `<your-path-to-repo>/scripts/run-wyndle.sh`
    - **Name**: `Wyndle`
    - Save the configuration
+
+![Wyndle Raycast Integration Demo](wyndle_demo.gif)
 
 ### Usage
 
