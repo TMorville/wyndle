@@ -732,13 +732,17 @@ class DuckDBConversationDB:
     def update_schedule(self, conversation_id: str, interval_sec: int) -> None:
         """Update the schedule for a conversation."""
         next_run = int(time.time()) + interval_sec
+        
+        # Determine conversation type based on ID prefix
+        conversation_type = "dm" if conversation_id.startswith("D") else "channel"
+        
         with self.get_connection() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO schedule (conversation_id, type, interval_sec, next_run_epoch)
                 VALUES (?, ?, ?, ?)
             """,
-                [conversation_id, "unknown", interval_sec, next_run],
+                [conversation_id, conversation_type, interval_sec, next_run],
             )
 
     def update_schedule_id(self, old_id: str, new_id: str) -> None:

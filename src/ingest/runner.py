@@ -89,6 +89,13 @@ async def fetch_conversation_safe(
 ) -> int:
     """Safely fetch a conversation with rate limiting."""
     try:
+        # Get human-readable name for logging
+        from data.duckdb_database import get_duckdb
+        db = get_duckdb()
+        readable_name = db.name_resolver.create_conversation_name(
+            conversation_id, conversation_type, participants
+        )
+        
         # Wait for rate limit token
         await bucket.consume()
 
@@ -105,16 +112,16 @@ async def fetch_conversation_safe(
         if new_messages > 0:
             logger.info(
                 f"Fetched {new_messages} new messages from {conversation_type} "
-                f"{conversation_id}"
+                f"{readable_name}"
             )
         else:
             logger.debug(
-                f"No new messages from {conversation_type} {conversation_id}"
+                f"No new messages from {conversation_type} {readable_name}"
             )
         return new_messages
 
     except Exception as e:
-        logger.error(f"Error fetching {conversation_type} {conversation_id}: {e}")
+        logger.error(f"Error fetching {conversation_type} {readable_name}: {e}")
         return 0
 
 
@@ -488,13 +495,16 @@ def start_daemon(num_workers: int, verbose: bool = False) -> None:
 
     # Set up logging to file with appropriate level
     log_file = Path.home() / ".wyndle" / "loader.log"
-    log_level = logging.DEBUG if verbose else logging.WARNING
+    log_level = logging.DEBUG if verbose else logging.INFO  # Always use INFO or higher for daemon logs
+    
+    # Create file handler with immediate flushing
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+    
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.FileHandler(log_file),
-        ]
+        handlers=[file_handler],
+        force=True  # Override any existing configuration
     )
 
     # Set our logger to INFO level to show meaningful activity

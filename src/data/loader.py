@@ -30,6 +30,11 @@ def fetch_and_process_conversation(
 ) -> int:
     """Fetch conversation history from Slack and directly insert into optimized database."""
     db = get_optimized_db()
+    
+    # Get human-readable name for logging
+    readable_name = db.name_resolver.create_conversation_name(
+        conversation_id, conversation_type, participants
+    )
 
     # For channels, resolve natural name to Slack ID if needed
     actual_conversation_id = conversation_id
@@ -82,11 +87,11 @@ def fetch_and_process_conversation(
         # Only log when we actually fetched messages
         if len(messages) > 0:
             logger.info(
-                f"Fetched {len(messages)} messages from {conversation_type} {conversation_id}"
+                f"Fetched {len(messages)} messages from {conversation_type} {readable_name}"
             )
         else:
             logger.debug(
-                f"No messages fetched from {conversation_type} {conversation_id}"
+                f"No messages fetched from {conversation_type} {readable_name}"
             )
 
         # Process and insert messages directly into optimized database
@@ -108,23 +113,23 @@ def fetch_and_process_conversation(
 
             except Exception as e:
                 logger.warning(
-                    f"Error processing message from {conversation_type} {conversation_id}: {e}"
+                    f"Error processing message from {conversation_type} {readable_name}: {e}"
                 )
                 continue
 
         # Only log when we actually added new messages
         if new_messages > 0:
             logger.info(
-                f"Added {new_messages} new messages from {conversation_type} {conversation_id}"
+                f"Added {new_messages} new messages from {conversation_type} {readable_name}"
             )
         else:
             logger.debug(
-                f"No new messages to add from {conversation_type} {conversation_id}"
+                f"No new messages to add from {conversation_type} {readable_name}"
             )
         return new_messages
 
     except Exception as e:
-        logger.error(f"Error fetching {conversation_type} {conversation_id}: {e}")
+        logger.error(f"Error fetching {conversation_type} {readable_name}: {e}")
         return 0
 
 
