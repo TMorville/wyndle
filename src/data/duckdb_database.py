@@ -732,10 +732,10 @@ class DuckDBConversationDB:
     def update_schedule(self, conversation_id: str, interval_sec: int) -> None:
         """Update the schedule for a conversation."""
         next_run = int(time.time()) + interval_sec
-        
+
         # Determine conversation type based on ID prefix
         conversation_type = "dm" if conversation_id.startswith("D") else "channel"
-        
+
         with self.get_connection() as conn:
             conn.execute(
                 """

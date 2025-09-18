@@ -72,7 +72,9 @@ def load_user_identity() -> tuple[str | None, str]:
         meta = load_meta()
         user_id: str | None = meta.get("owner_id") or meta.get("user_id")
         user_name = str(
-            meta.get("user_name") or meta.get("owner_name") or os.getenv("WYNDLE_USER_NAME", "User")
+            meta.get("user_name")
+            or meta.get("owner_name")
+            or os.getenv("WYNDLE_USER_NAME", "User")
         )
         return user_id, user_name
     except Exception:

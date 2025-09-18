@@ -178,7 +178,7 @@ template provided in the system prompt."""
                 max_tokens=4096,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ],
             )
             if response.choices and response.choices[0].message.content:

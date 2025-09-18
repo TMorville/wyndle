@@ -30,7 +30,7 @@ def fetch_and_process_conversation(
 ) -> int:
     """Fetch conversation history from Slack and directly insert into optimized database."""
     db = get_optimized_db()
-    
+
     # Get human-readable name for logging
     readable_name = db.name_resolver.create_conversation_name(
         conversation_id, conversation_type, participants

@@ -91,11 +91,12 @@ async def fetch_conversation_safe(
     try:
         # Get human-readable name for logging
         from data.duckdb_database import get_duckdb
+
         db = get_duckdb()
         readable_name = db.name_resolver.create_conversation_name(
             conversation_id, conversation_type, participants
         )
-        
+
         # Wait for rate limit token
         await bucket.consume()
 
@@ -115,9 +116,7 @@ async def fetch_conversation_safe(
                 f"{readable_name}"
             )
         else:
-            logger.debug(
-                f"No new messages from {conversation_type} {readable_name}"
-            )
+            logger.debug(f"No new messages from {conversation_type} {readable_name}")
         return new_messages
 
     except Exception as e:
@@ -432,8 +431,6 @@ async def main() -> None:
         logger.error(f"Unexpected error in main loop: {e}")
 
 
-
-
 def get_pid_file() -> Path:
     """Get the PID file path for the daemon."""
     return Path.home() / ".wyndle" / "loader.pid"
@@ -482,29 +479,33 @@ def start_daemon(num_workers: int, verbose: bool = False) -> None:
         sys.exit(0)
 
     # Write PID file
-    with open(pid_file, 'w') as f:
+    with open(pid_file, "w") as f:
         f.write(str(os.getpid()))
 
     # Redirect standard streams to /dev/null
-    with open('/dev/null', 'w') as devnull:
+    with open("/dev/null", "w") as devnull:
         os.dup2(devnull.fileno(), sys.stdout.fileno())
         os.dup2(devnull.fileno(), sys.stderr.fileno())
 
-    with open('/dev/null') as devnull:
+    with open("/dev/null") as devnull:
         os.dup2(devnull.fileno(), sys.stdin.fileno())
 
     # Set up logging to file with appropriate level
     log_file = Path.home() / ".wyndle" / "loader.log"
-    log_level = logging.DEBUG if verbose else logging.INFO  # Always use INFO or higher for daemon logs
-    
+    log_level = (
+        logging.DEBUG if verbose else logging.INFO
+    )  # Always use INFO or higher for daemon logs
+
     # Create file handler with immediate flushing
     file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
-    
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+
     logging.basicConfig(
         level=log_level,
         handlers=[file_handler],
-        force=True  # Override any existing configuration
+        force=True,  # Override any existing configuration
     )
 
     # Set our logger to INFO level to show meaningful activity
@@ -549,6 +550,7 @@ def stop_daemon() -> None:
 
         # Wait for process to stop
         import time
+
         for _ in range(10):  # Wait up to 10 seconds
             try:
                 os.kill(pid, 0)
@@ -596,20 +598,15 @@ def cli_main() -> None:
     """CLI entry point for the continuous loader."""
     parser = argparse.ArgumentParser(description="Wyndle background loader daemon")
     parser.add_argument(
-        "action",
-        choices=["start", "stop", "restart", "status"],
-        help="Daemon action"
+        "action", choices=["start", "stop", "restart", "status"], help="Daemon action"
     )
     parser.add_argument(
-        "--workers",
-        type=int,
-        default=3,
-        help="Number of worker processes (default: 3)"
+        "--workers", type=int, default=3, help="Number of worker processes (default: 3)"
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Enable verbose logging (shows all debug messages)"
+        help="Enable verbose logging (shows all debug messages)",
     )
 
     args = parser.parse_args()

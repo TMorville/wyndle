@@ -22,6 +22,7 @@ MODEL_NAME = "gpt-4"
 MAX_TOKENS = 4000
 USER_NAME = os.getenv("WYNDLE_USER_NAME", "User")  # Configurable user name
 
+
 def get_client() -> OpenAI:
     """Get OpenAI client, initialized on first use."""
     return OpenAI()
@@ -104,7 +105,7 @@ def main() -> None:
             max_tokens=MAX_TOKENS,
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": chunk}
+                {"role": "user", "content": chunk},
             ],
         )
         if response.choices and response.choices[0].message.content:
